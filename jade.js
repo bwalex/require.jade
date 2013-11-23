@@ -96,13 +96,14 @@ define(['jade-full'], function (Jade) {
         fetchText: fetchText,
 
         get: function () {
-            return CoffeeScript;
+            return Jade;
         },
 
         write: function (pluginName, name, write) {
+	    console.log("called #1");
             if (buildMap.hasOwnProperty(name)) {
                 var text = buildMap[name];
-                write.asModule(pluginName+"!"+name, "define(['jade-runtime'], function(jade) { return "+text+"});\n");
+                write.asModule(pluginName+"!"+name, text);
             }
         },
 
@@ -111,6 +112,7 @@ define(['jade-full'], function (Jade) {
         load: function (name, parentRequire, load, config) {
             var fullName = /\.jade$/.test(name) ? name : name + '.jade';
             var path = parentRequire.toUrl(fullName);
+	    var text = "";
             fetchText(path, function (text) {
 
                 var compiled;
@@ -125,12 +127,17 @@ define(['jade-full'], function (Jade) {
                     throw err;
                 }
 
+		text = "define(['jade-runtime'], function(jade) { return "+compiled+"});\n";
                 //Hold on to the transformed text if a build.
                 if (config.isBuild) {
-                    buildMap[name] = compiled;
+                    buildMap[name] = text;
                 }
 
-                load(compiled);
+                load.fromText(name, text);
+
+                parentRequire([name], function (value) {
+                    load(value);
+                });
             });
         }
     };
